@@ -1,0 +1,11 @@
+SDDropboxServer/.vscode
+SDDropboxServer/bin
+SDDropboxServer/obj
+
+SDDropboxClient/.vscode
+SDDropboxClient/bin
+SDDropboxClient/obj
+
+SDDropboxShared/.vscode
+SDDropboxShared/bin
+SDDropboxShared/obj
