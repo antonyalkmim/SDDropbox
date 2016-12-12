@@ -47,11 +47,12 @@ akka {
         if(requestResult.target == null){
             Console.WriteLine("Não existe servidores disponíveis no momento!");   
         }else{
-            Console.WriteLine("Conected to: {0}", requestResult.target);
+            //Console.WriteLine("Conected to: {0}", requestResult.target);
 
             //execute operation
             var result = await requestResult.target.Ask<string>(operation);
-            Console.WriteLine("Retorno: {0}", result);
+            //Console.WriteLine("Retorno: {0}", result);
+            Console.WriteLine(result);
         }
 
 

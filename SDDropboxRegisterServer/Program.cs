@@ -38,14 +38,16 @@ akka {
 
     public sealed class RequestMessage
     {
-        public RequestMessage(RequestMethod method, IActorRef target)
+        public RequestMessage(RequestMethod method, IActorRef target, IActorRef server)
         {
             this.method = method;
             this.Target = target;
+            this.server = server;
         }
 
         public RequestMethod method { get; }
         public IActorRef Target { get; }
+        public IActorRef server { get; }
     }
 
     public class ExecutorActor : TypedActor, IHandle<RegisterMessage>
@@ -66,7 +68,14 @@ akka {
 
         public void Handle(RegisterMessage message)
         {
-            _workers[message.method].Tell(new RequestMessage(message.method, Sender));
+            
+            _workers[message.method].Tell(new RequestMessage(message.method, Sender, message.target));
+            /*
+            if(message.method == RequestMethod.RegisterServer){
+                
+            }else{
+                _workers[message.method].Tell(new RequestMessage(message.method, Sender, null));
+            }*/
         }
         
 
@@ -76,8 +85,8 @@ akka {
         {
             public void Handle(RequestMessage message)
             {
-                _servers.Add(message.Target);
-                message.Target.Tell(true);
+                _servers.Add(message.server);
+                message.Target.Tell(new RegisterResponseMessage(message.server));
             }
         }
 

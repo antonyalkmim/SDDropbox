@@ -20,7 +20,7 @@ akka {
 
     remote {
         helios.tcp {
-            port = 8080
+            port = 0
             hostname = localhost
         }
     }
@@ -28,14 +28,16 @@ akka {
 
             var system = ActorSystem.Create("SDDropbox", config);
             var executor = system.ActorOf<OperatorActor>("executor");
-            
-            /*
-            Task.Run(async () => {
-                var result = await register.Ask<bool>(new RegisterMessage(RequestMethod.RegisterServer, null));
-                Console.WriteLine("Retorno: {0}", result);
-            }).Wait();
-            */
+            var register = system.ActorSelection("akka.tcp://SDDropbox@localhost:8080/user/register");
 
+            RegisterResponseMessage result = null;
+            Task.Run(async () => {
+                result = await register.Ask<RegisterResponseMessage>(new RegisterMessage(RequestMethod.RegisterServer, executor));
+            }).Wait();
+            
+            Console.WriteLine(result.target == null ? "Não foi possivel registrar servidor" : "Servidor registrado com sucesso!");
+            
+            
             Console.WriteLine(executor);
             Console.WriteLine("Pressione ENTER para sair...");
             Console.ReadLine();
