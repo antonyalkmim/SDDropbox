@@ -28,6 +28,13 @@ akka {
 
             var system = ActorSystem.Create("SDDropbox", config);
             var executor = system.ActorOf<OperatorActor>("executor");
+            
+            /*
+            Task.Run(async () => {
+                var result = await register.Ask<bool>(new RegisterMessage(RequestMethod.RegisterServer, null));
+                Console.WriteLine("Retorno: {0}", result);
+            }).Wait();
+            */
 
             Console.WriteLine(executor);
             Console.WriteLine("Pressione ENTER para sair...");

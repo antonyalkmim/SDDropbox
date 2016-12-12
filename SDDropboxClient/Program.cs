@@ -24,29 +24,45 @@ akka {
 }"); ;
 
         var system = ActorSystem.Create("SDDropbox", config);
-        var dropbox = system.ActorSelection(
-            "akka.tcp://SDDropbox@localhost:8080/user/executor");
-
+        var register = system.ActorSelection("akka.tcp://SDDropbox@localhost:8080/user/register");
+        
         while(true){
             Operation op = GetOperation();
             
             if(op == null) break;
-            
-            ExecuteOperation(dropbox, op).Wait();    
+
+            ExecuteOperation(register, op).Wait();    
         }
+        
         Console.WriteLine("Finalizando SDDropbox Client!");
         Console.ReadLine();
     }
 
-    private static async Task ExecuteOperation(ActorSelection dropbox, Operation operation)
+
+    private static async Task ExecuteOperation(ActorSelection register, Operation operation)
     {
-        var result = await dropbox.Ask<string>(operation);
-        Console.WriteLine("Retorno:");
-        Console.WriteLine(result);
+        //request some server
+        var requestResult = await register.Ask<RegisterResponseMessage>(new RegisterMessage(RequestMethod.RequestServer, null));
+        
+        if(requestResult.target == null){
+            Console.WriteLine("Não existe servidores disponíveis no momento!");   
+        }else{
+            Console.WriteLine("Conected to: {0}", requestResult.target);
+
+            //execute operation
+            var result = await requestResult.target.Ask<string>(operation);
+            Console.WriteLine("Retorno: {0}", result);
+        }
+
+
+        Console.WriteLine("--------------------------------------");
+        Console.WriteLine("Pressione qualquer tecla para prosseguir...");
+        Console.ReadLine();
     }
 
 
     private static Operation GetOperation(){
+        Console.Clear();
         Console.WriteLine("--------------------------------------");
         Console.WriteLine("OPÇÕES:");
         Console.WriteLine("0 - LIST");
@@ -58,10 +74,13 @@ akka {
 
         int op = Int32.Parse(Console.ReadLine());
         
+        Console.WriteLine("--------------------------------------");
+
         //sair
         if(op == 4){
             return null;
         }
+        
 
         return new Operation(OperationType.List, "", "");
     }

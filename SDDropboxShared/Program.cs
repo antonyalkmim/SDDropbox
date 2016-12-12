@@ -1,4 +1,5 @@
 ﻿using System;
+using Akka.Actor;
 
 namespace SDDropboxShared
 {
@@ -20,9 +21,40 @@ namespace SDDropboxShared
         public OperationType operationType { get; }
     }
 
-    
+
     public enum OperationType {
         List, Read, Write, Delete
+    }
+
+   
+    public sealed class RegisterMessage
+    {
+        
+        public RegisterMessage(RequestMethod method, IActorRef target)
+        {
+            this.method = method;
+            this.target = target;
+        }
+
+        public RequestMethod method { get; }
+        public IActorRef target { get; }
+    }
+
+    public sealed class RegisterResponseMessage
+    {
+        
+        public RegisterResponseMessage(IActorRef target)
+        {
+            this.success = target == null;
+            this.target = target;
+        }
+
+        public bool success { get; }
+        public IActorRef target { get; }
+    }
+
+    public enum RequestMethod {
+        RegisterServer, RequestServer
     }
 
 }

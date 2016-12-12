@@ -3,7 +3,10 @@
   "buildOptions": {
     "debugType": "portable"
   },
-  "dependencies": {},
+  "dependencies": {
+    "Akka": "1.1.2",
+    "Akka.Remote": "1.1.2"
+  },
   "frameworks": {
     "net451": {}
   }
