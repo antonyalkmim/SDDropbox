@@ -54,7 +54,7 @@ namespace SDDropboxShared
     }
 
     public enum RequestMethod {
-        RegisterServer, RequestServer
+        RegisterServer, RequestServer, ListServers
     }
 
 }

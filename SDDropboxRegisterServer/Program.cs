@@ -62,20 +62,14 @@ akka {
             _workers = new Dictionary<RequestMethod, IActorRef>
             {
                 [RequestMethod.RegisterServer] = Context.ActorOf<RegisterActor>("register_server"),
-                [RequestMethod.RequestServer] = Context.ActorOf<RequestActor>("request_server")
+                [RequestMethod.RequestServer] = Context.ActorOf<RequestActor>("request_server"),
+                [RequestMethod.ListServers] = Context.ActorOf<ListServerActor>("list_server")
             };
         }
 
         public void Handle(RegisterMessage message)
         {
-            
             _workers[message.method].Tell(new RequestMessage(message.method, Sender, message.target));
-            /*
-            if(message.method == RequestMethod.RegisterServer){
-                
-            }else{
-                _workers[message.method].Tell(new RequestMessage(message.method, Sender, null));
-            }*/
         }
         
 
@@ -105,6 +99,18 @@ akka {
                 message.Target.Tell(new RegisterResponseMessage(server));
             }
         }
+
+        // Responsable for return list server
+        //=========================================================
+        private class ListServerActor : TypedActor, IHandle<RequestMessage>
+        {
+            public void Handle(RequestMessage message)
+            {   
+                message.Target.Tell(_servers);
+                //message.Target.Tell("servidores registrados aqui"); //FIXME return server registered
+            }
+        }
+        
        
     }
 }

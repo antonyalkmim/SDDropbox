@@ -38,6 +38,14 @@ akka {
             Console.WriteLine(result.target == null ? "Não foi possivel registrar servidor" : "Servidor registrado com sucesso!");
             
             
+            //List server registered
+            Task.Run(async () => {
+                var res = await register.Ask<List<IActorRef>>(new RegisterMessage(RequestMethod.ListServers, null));
+                Console.WriteLine("Servidores registrados: {0}", res);
+            }).Wait();
+
+
+
             Console.WriteLine(executor);
             Console.WriteLine("Pressione ENTER para sair...");
             Console.ReadLine();
