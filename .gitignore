@@ -9,3 +9,8 @@ SDDropboxClient/obj
 SDDropboxShared/.vscode
 SDDropboxShared/bin
 SDDropboxShared/obj
+
+
+SDDropboxRegisterServer/.vscode
+SDDropboxRegisterServer/bin
+SDDropboxRegisterServer/obj
