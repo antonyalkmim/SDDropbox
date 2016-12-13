@@ -27,6 +27,10 @@ akka {
     }
 }"); ;
 
+            if(!Directory.Exists(Constants.FILEPATH)){
+                Directory.CreateDirectory(Constants.FILEPATH);
+            }
+
             var system = ActorSystem.Create("SDDropbox", config);
             var executor = system.ActorOf<OperatorActor>("executor");
             var register = system.ActorSelection("akka.tcp://SDDropbox@localhost:8080/user/register");
@@ -45,7 +49,7 @@ akka {
                 Console.WriteLine("Servidores registrados: {0}", res);
             }).Wait();
 
-
+            
 
             Console.WriteLine(executor);
             Console.WriteLine("Pressione ENTER para sair...");
