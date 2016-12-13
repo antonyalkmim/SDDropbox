@@ -77,7 +77,7 @@ akka {
             _workers = new Dictionary<OperationType, IActorRef>
             {
                 [OperationType.List] = Context.ActorOf<ListActor>("list"),
-                [OperationType.Read] = Context.ActorOf<ListActor>("read"),
+                [OperationType.Read] = Context.ActorOf<ReadActor>("read"),
                 [OperationType.Write] = Context.ActorOf<WriteActor>("write"),
                 [OperationType.Delete] = Context.ActorOf<DeleteActor>("delete"),
             };
@@ -122,6 +122,23 @@ akka {
                 string [] fileNames = Directory.GetFiles(Constants.FILEPATH);
                 string files = String.Join("\n", fileNames);
                 message.Target.Tell(files);
+            }
+        }
+
+
+        private class ReadActor : TypedActor, IHandle<OperationMessage>
+        {
+            public void Handle(OperationMessage message)
+            {
+                var path = Constants.FILEPATH + "/" + message.Operation.filename;
+                
+                if(!File.Exists(path)){   
+                    message.Target.Tell(new ReadResponse(false, "Arquivo não encontrado!", null, null));
+                }else{
+                    Console.WriteLine("Enviando: {0}", message.Operation.filename);
+                    byte[] info = File.ReadAllBytes(path);
+                    message.Target.Tell(new ReadResponse(true, "Arquivo sincronizado!", message.Operation.filename, info));
+                }
             }
         }
 

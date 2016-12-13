@@ -21,6 +21,21 @@ namespace SDDropboxShared
         public OperationType operationType { get; }
     }
 
+    public sealed class ReadResponse {
+        public ReadResponse(bool status, string description, string filename, byte[] file)
+        {
+            this.status = status;
+            this.description = description;
+            this.filename = filename;
+            this.file = file;
+        }
+
+        public bool status { get; } //
+        public string description { get; }
+        public byte[] file { get; }
+        public string filename { get; }
+    }
+
 
     public enum OperationType : Int32 {
         List = 0, Read = 1, Write = 2, Delete = 3, Exit = 4

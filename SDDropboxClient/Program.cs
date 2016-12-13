@@ -56,10 +56,37 @@ akka {
         }else{
             //Console.WriteLine("Conected to: {0}", requestResult.target);
 
+            var result = "";
             //execute operation
-            var result = await requestResult.target.Ask<string>(operation);
-            //Console.WriteLine("Retorno: {0}", result);
+            switch(operation.operationType){
+                case OperationType.Read:
+                    var response = await requestResult.target.Ask<ReadResponse>(operation);
+                    result = response.description;
+                    
+                    var path = Constants.FILEPATH + "/" + response.filename;
+                    if(response.status){
+                        if(!Directory.Exists(Constants.FILEPATH)){
+                            Directory.CreateDirectory(Constants.FILEPATH);
+                        }
+                        if(File.Exists(path)){
+                            File.Delete(path);
+                        }
+                        
+                        using (FileStream fs = File.Create(path))
+                        {
+                            fs.Write(response.file, 0, response.file.Length);
+                        }
+                    }
+
+                    break;
+                default:
+                    result = await requestResult.target.Ask<string>(operation);
+                    break;
+            }
+            
             Console.WriteLine(result);
+            //Console.WriteLine("Retorno: {0}", result);
+            
         }
 
 
@@ -85,29 +112,35 @@ akka {
         Console.WriteLine("--------------------------------------");
 
 
-        switch(op){
-            case OperationType.List : return new Operation(OperationType.List, "", null);
-            case OperationType.Exit : return new Operation(OperationType.Exit, "", null);
-            default : 
-                Console.WriteLine("Nome do arquivo: ");
-                string path = Console.ReadLine();
-                
-                //Byte[] info = new UTF8Encoding(true).GetBytes("");
-                if(!File.Exists(path)){
-                    Console.WriteLine("Arquivo não encontrado!");
-                    return null; 
-                }else{
-                    var filenamePath = path.Split('/');
-                    var filename = filenamePath[filenamePath.Length - 1];
-                    
-                    Console.WriteLine("Enviando: {0}", filename);
-
-                    byte[] info = File.ReadAllBytes(path);
-                    return new Operation(op, filename, info);
-                }
-        }
         
+        if(op == OperationType.Exit){ //EXIT
+            return new Operation(OperationType.Exit, "", null);
+        }
 
+        if(op == OperationType.List){ //LIST
+            return new Operation(OperationType.List, "", null);
+        }
+
+        Console.WriteLine("Nome do arquivo: ");
+        string path = Console.ReadLine();
+
+        if (op == OperationType.Write){ //WRITE
+            if(!File.Exists(path)){
+                Console.WriteLine("Arquivo não encontrado!");
+                return null; 
+            }else{
+                var filenamePath = path.Split('/');
+                var filename = filenamePath[filenamePath.Length - 1];
+                
+                Console.WriteLine("Enviando: {0}", filename);
+
+                byte[] info = File.ReadAllBytes(path);
+                return new Operation(op, filename, info);
+            }
+        }
+
+
+        return new Operation(op, path, null); //READ, DELETE
     }
 
 }
