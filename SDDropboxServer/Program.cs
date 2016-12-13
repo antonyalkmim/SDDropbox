@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Text;
 using System.Threading.Tasks;
 using Akka.Actor;
 using Akka.Configuration;
@@ -77,8 +78,8 @@ akka {
             {
                 [OperationType.List] = Context.ActorOf<ListActor>("list"),
                 [OperationType.Read] = Context.ActorOf<ListActor>("read"),
-                [OperationType.Write] = Context.ActorOf<ListActor>("write"),
-                [OperationType.Delete] = Context.ActorOf<ListActor>("delete"),
+                [OperationType.Write] = Context.ActorOf<WriteActor>("write"),
+                [OperationType.Delete] = Context.ActorOf<DeleteActor>("delete"),
             };
         }
 
@@ -97,6 +98,44 @@ akka {
                 string [] fileNames = Directory.GetFiles(Constants.FILEPATH);
                 string files = String.Join("\n", fileNames);
                 message.Target.Tell(files);
+            }
+        }
+
+        private class WriteActor : TypedActor, IHandle<OperationMessage>
+        {
+            public void Handle(OperationMessage message)
+            {
+                var path = Constants.FILEPATH + "/" + message.Operation.filename;
+                
+                if(File.Exists(path)){   
+                    message.Target.Tell("Arquivo ja existente!");
+                }else{
+                    
+                    using (FileStream fs = File.Create(path))
+                    {
+                        //Byte[] info = new UTF8Encoding(true).GetBytes(message.Operation.content);
+                        fs.Write(message.Operation.content, 0, message.Operation.content.Length);
+                    }
+
+                }
+
+                string [] fileNames = Directory.GetFiles(Constants.FILEPATH);
+                string files = String.Join("\n", fileNames);
+                message.Target.Tell(files);
+            }
+        }
+
+
+        private class DeleteActor : TypedActor, IHandle<OperationMessage>
+        {
+            public void Handle(OperationMessage message)
+            {
+                if(File.Exists(Constants.FILEPATH + "/" + message.Operation.filename)){
+                    File.Delete(Constants.FILEPATH + "/" + message.Operation.filename);   
+                    message.Target.Tell("Arquivo removido com sucesso!");
+                }else{
+                    message.Target.Tell("Arquivo não existe!");
+                }
             }
         }
 

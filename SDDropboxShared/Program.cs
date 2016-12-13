@@ -9,7 +9,7 @@ namespace SDDropboxShared
     public sealed class Operation
     {
         
-        public Operation(OperationType operationType, string filename, string content)
+        public Operation(OperationType operationType, string filename, byte[] content)
         {
             this.operationType = operationType;
             this.filename = filename;
@@ -17,13 +17,13 @@ namespace SDDropboxShared
         }
 
         public string filename { get; }
-        public string content { get; }
+        public byte[] content { get; }
         public OperationType operationType { get; }
     }
 
 
-    public enum OperationType {
-        List, Read, Write, Delete
+    public enum OperationType : Int32 {
+        List = 0, Read = 1, Write = 2, Delete = 3, Exit = 4
     }
 
    

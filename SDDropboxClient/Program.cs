@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Text;
 using System.Threading.Tasks;
 using Akka.Actor;
 using Akka.Configuration;
@@ -29,7 +31,12 @@ akka {
         while(true){
             Operation op = GetOperation();
             
-            if(op == null) break;
+            if(op == null) {
+                Console.WriteLine("--------------------------------------");
+                Console.WriteLine("Pressione qualquer tecla para prosseguir...");
+                Console.ReadLine();
+                continue;
+            }else if(op.operationType == OperationType.Exit) break;
 
             ExecuteOperation(register, op).Wait();    
         }
@@ -66,24 +73,41 @@ akka {
         Console.Clear();
         Console.WriteLine("--------------------------------------");
         Console.WriteLine("OPÇÕES:");
-        Console.WriteLine("0 - LIST");
-        Console.WriteLine("1 - READ");
-        Console.WriteLine("2 - WRITE");
-        Console.WriteLine("3 - DELETE");
-        Console.WriteLine("4 - EXIT");
+        Console.WriteLine("{0} - LIST", (Int32) OperationType.List);
+        Console.WriteLine("{0} - READ", (Int32) OperationType.Read);
+        Console.WriteLine("{0} - WRITE", (Int32) OperationType.Write);
+        Console.WriteLine("{0} - DELETE", (Int32) OperationType.Delete);
+        Console.WriteLine("{0} - EXIT", (Int32) OperationType.Exit);
         Console.Write("OP: ");
 
-        int op = Int32.Parse(Console.ReadLine());
+        OperationType op = (OperationType) Int32.Parse(Console.ReadLine());
         
         Console.WriteLine("--------------------------------------");
 
-        //sair
-        if(op == 4){
-            return null;
+
+        switch(op){
+            case OperationType.List : return new Operation(OperationType.List, "", null);
+            case OperationType.Exit : return new Operation(OperationType.Exit, "", null);
+            default : 
+                Console.WriteLine("Nome do arquivo: ");
+                string path = Console.ReadLine();
+                
+                //Byte[] info = new UTF8Encoding(true).GetBytes("");
+                if(!File.Exists(path)){
+                    Console.WriteLine("Arquivo não encontrado!");
+                    return null; 
+                }else{
+                    var filenamePath = path.Split('/');
+                    var filename = filenamePath[filenamePath.Length - 1];
+                    
+                    Console.WriteLine("Enviando: {0}", filename);
+
+                    byte[] info = File.ReadAllBytes(path);
+                    return new Operation(op, filename, info);
+                }
         }
         
 
-        return new Operation(OperationType.List, "", "");
     }
 
 }
