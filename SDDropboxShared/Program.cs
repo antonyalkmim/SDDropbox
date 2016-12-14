@@ -9,13 +9,15 @@ namespace SDDropboxShared
     public sealed class Operation
     {
         
-        public Operation(OperationType operationType, string filename, byte[] content)
+        public Operation(OperationType operationType, string filename, byte[] content, bool isServerAction = false)
         {
             this.operationType = operationType;
             this.filename = filename;
             this.content = content;
+            this.isServerAction = isServerAction;
         }
 
+        public bool isServerAction {get; }
         public string filename { get; }
         public byte[] content { get; }
         public OperationType operationType { get; }

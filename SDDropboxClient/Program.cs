@@ -123,11 +123,11 @@ akka {
 
         
         if(op == OperationType.Exit){ //EXIT
-            return new Operation(OperationType.Exit, "", null);
+            return new Operation(OperationType.Exit, "", null, false);
         }
 
         if(op == OperationType.List){ //LIST
-            return new Operation(OperationType.List, "", null);
+            return new Operation(OperationType.List, "", null, false);
         }
 
         Console.WriteLine("Nome do arquivo: ");
@@ -144,12 +144,12 @@ akka {
                 Console.WriteLine("Enviando: {0}", filename);
 
                 byte[] info = File.ReadAllBytes(path);
-                return new Operation(op, filename, info);
+                return new Operation(op, filename, info, false);
             }
         }
 
 
-        return new Operation(op, path, null); //READ, DELETE
+        return new Operation(op, path, null, false); //READ, DELETE
     }
 
 }

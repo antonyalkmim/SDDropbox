@@ -11,6 +11,10 @@ namespace SDDropboxServer
 {
     public static class Program
     {
+
+        public static ActorSelection register;
+        public static IActorRef executor;
+
         public static void Main(string[] args)
         {
             var config = ConfigurationFactory.ParseString(@"
@@ -40,8 +44,8 @@ akka {
             }
 
             var system = ActorSystem.Create("SDDropbox", config);
-            var executor = system.ActorOf<OperatorActor>("executor");
-            var register = system.ActorSelection(String.Format("akka.tcp://SDDropbox@{0}/user/register", args[0]));
+            executor = system.ActorOf<OperatorActor>("executor");
+            register = system.ActorSelection(String.Format("akka.tcp://SDDropbox@{0}/user/register", args[0]));
 
             RegisterResponseMessage result = null;
             Task.Run(async () => {
@@ -64,11 +68,23 @@ akka {
             Console.ReadLine();
         }
 
-    }
+    
 
     public sealed class OperationMessage
     {
         public OperationMessage(Operation operation, IActorRef target)
+        {
+            Operation = operation;
+            Target = target;
+        }
+
+        public Operation Operation { get; }
+        public IActorRef Target { get; }
+    }
+
+    public sealed class ServerOperationMessage
+    {
+        public ServerOperationMessage(Operation operation, IActorRef target)
         {
             Operation = operation;
             Target = target;
@@ -98,19 +114,49 @@ akka {
         public void Handle(Operation message)
         {
             var responsibleActor = _workers[message.operationType];
-            var operationMessage = new OperationMessage(message, Sender);
-
-            responsibleActor.Tell(operationMessage);
+            if(message.isServerAction){ //Client request
+                responsibleActor.Tell(new ServerOperationMessage(message, Sender));
+            }else{ //server request
+                responsibleActor.Tell(new OperationMessage(message, Sender));
+            }
+            
         }
 
-        private class ListActor : TypedActor, IHandle<OperationMessage>
+        private class ListActor : TypedActor, IHandle<OperationMessage>, IHandle<ServerOperationMessage>
         {
-            public void Handle(OperationMessage message)
+            public void Handle(ServerOperationMessage message)
             {
                 string [] fileNames = Directory.GetFiles(Constants.FILEPATH);
                 string files = String.Join("\n", fileNames);
                 message.Target.Tell(files);
             }
+
+            public void Handle(OperationMessage message)
+            {
+                List<IActorRef> servers = null;
+                List<String> list = new List<String>();
+                
+                string [] fileNames = Directory.GetFiles(Constants.FILEPATH);
+                list.Add(String.Join("\n", fileNames));
+
+                Task.Run(async () => {
+                    servers = await register.Ask<List<IActorRef>>(new RegisterMessage(RequestMethod.ListServers, null));
+                    servers = (servers != null) ? servers : new List<IActorRef>(); 
+                    Console.WriteLine("Servidores encontrados: {0}", servers.Count);
+
+                    foreach(IActorRef serv in servers){
+                        if(serv == executor) continue;
+                        var res = await serv.Ask<string>(new Operation(OperationType.List, null, null, true));
+                        list.Add(res);
+                    }
+
+                }).Wait();
+                
+                var files = String.Join("\n", list);
+                message.Target.Tell(files);
+            }
+
+
         }
 
         private class WriteActor : TypedActor, IHandle<OperationMessage>
@@ -155,19 +201,47 @@ akka {
         }
 
 
-        private class DeleteActor : TypedActor, IHandle<OperationMessage>
+        private class DeleteActor : TypedActor, IHandle<OperationMessage>, IHandle<ServerOperationMessage>
         {
+            public void Handle(ServerOperationMessage message)
+            {
+                if(File.Exists(Constants.FILEPATH + "/" + message.Operation.filename)){
+                    File.Delete(Constants.FILEPATH + "/" + message.Operation.filename);   
+                }
+                message.Target.Tell("Arquivo removido com sucesso!");
+                //else{
+                //    message.Target.Tell("Arquivo não existe!");
+                //}
+            }
+
+
             public void Handle(OperationMessage message)
             {
+                List<IActorRef> servers = null;
+                List<String> list = new List<String>();
+                
                 if(File.Exists(Constants.FILEPATH + "/" + message.Operation.filename)){
                     File.Delete(Constants.FILEPATH + "/" + message.Operation.filename);   
                     message.Target.Tell("Arquivo removido com sucesso!");
                 }else{
-                    message.Target.Tell("Arquivo não existe!");
+                    Task.Run(async () => {
+                        servers = await register.Ask<List<IActorRef>>(new RegisterMessage(RequestMethod.ListServers, null));
+                        servers = (servers != null) ? servers : new List<IActorRef>(); 
+                        Console.WriteLine("Servidores encontrados: {0}", servers.Count);
+
+                        foreach(IActorRef serv in servers){
+                            if(serv == executor) continue;
+                            await serv.Ask<string>(new Operation(OperationType.Delete, null, null, true));
+                        }
+
+                    }).Wait();
+                
+                    message.Target.Tell("Arquivo removido com sucesso!");
                 }
             }
         }
 
        
+    }
     }
 }
