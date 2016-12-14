@@ -25,8 +25,17 @@ akka {
     }
 }"); ;
 
+        if(args.Length == 0){
+            Console.WriteLine("É necessário informar o endereço do servidor de registros");
+            Console.WriteLine("--------------------------------------");
+            Console.WriteLine("Finalizando SDDropbox Client!");
+            Console.ReadLine();
+            return;
+        }
+
         var system = ActorSystem.Create("SDDropbox", config);
-        var register = system.ActorSelection("akka.tcp://SDDropbox@localhost:8080/user/register");
+        var register = system.ActorSelection(String.Format("akka.tcp://SDDropbox@{0}/user/register", args[0]));
+        
         
         while(true){
             Operation op = GetOperation();

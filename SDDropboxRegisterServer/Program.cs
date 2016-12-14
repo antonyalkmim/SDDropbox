@@ -12,6 +12,7 @@ namespace SDDropboxRegisterServer
     {
         public static void Main(string[] args)
         {
+
             var config = ConfigurationFactory.ParseString(@"
 akka {
     actor {
@@ -20,12 +21,11 @@ akka {
 
     remote {
         helios.tcp {
-            port = 8080
+            port = 4000
             hostname = localhost
         }
     }
 }"); ;
-
             var system = ActorSystem.Create("SDDropbox", config);
             var executor = system.ActorOf<ExecutorActor>("register");
 
