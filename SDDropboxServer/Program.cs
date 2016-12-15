@@ -165,21 +165,31 @@ akka {
             {
                 var path = Constants.FILEPATH + "/" + message.Operation.filename;
                 
-                if(File.Exists(path)){   
-                    message.Target.Tell("Arquivo ja existente!");
-                }else{
-                    
-                    using (FileStream fs = File.Create(path))
-                    {
-                        //Byte[] info = new UTF8Encoding(true).GetBytes(message.Operation.content);
-                        fs.Write(message.Operation.content, 0, message.Operation.content.Length);
-                    }
+                List<IActorRef> servers = null;
+                
+                //delete local
+                if(File.Exists(path)){
+                    File.Delete(path);
+                }
+                //delete from all servers
+                Task.Run(async () => {
+                    servers = await register.Ask<List<IActorRef>>(new RegisterMessage(RequestMethod.ListServers, null));
+                    servers = (servers != null) ? servers : new List<IActorRef>(); 
+                    Console.WriteLine("Servidores encontrados: {0}", servers.Count);
 
+                    foreach(IActorRef serv in servers){
+                        if(serv == executor) continue;
+                        await serv.Ask<string>(new Operation(OperationType.Delete, message.Operation.filename, null, true));
+                    }
+                }).Wait();
+                
+
+                using (FileStream fs = File.Create(path))
+                {
+                    fs.Write(message.Operation.content, 0, message.Operation.content.Length);
                 }
 
-                string [] fileNames = Directory.GetFiles(Constants.FILEPATH);
-                string files = String.Join("\n", fileNames);
-                message.Target.Tell(files);
+                message.Target.Tell("Arquivo salvo com sucesso!");
             }
         }
 
@@ -209,35 +219,33 @@ akka {
                     File.Delete(Constants.FILEPATH + "/" + message.Operation.filename);   
                 }
                 message.Target.Tell("Arquivo removido com sucesso!");
-                //else{
-                //    message.Target.Tell("Arquivo não existe!");
-                //}
             }
 
 
             public void Handle(OperationMessage message)
             {
                 List<IActorRef> servers = null;
-                String res = "Arquivo removido com sucesso!";
+                String path = Constants.FILEPATH + "/" + message.Operation.filename;
 
-                if(File.Exists(Constants.FILEPATH + "/" + message.Operation.filename)){
-                    File.Delete(Constants.FILEPATH + "/" + message.Operation.filename);
+                //Delete local
+                if(File.Exists(path)){
+                    File.Delete(path);
+                }else{
+                    //Delete from other servers
+                    Task.Run(async () => {
+                        servers = await register.Ask<List<IActorRef>>(new RegisterMessage(RequestMethod.ListServers, null));
+                        servers = (servers != null) ? servers : new List<IActorRef>(); 
+                        Console.WriteLine("Servidores encontrados: {0}", servers.Count);
+
+                        foreach(IActorRef serv in servers){
+                            if(serv == executor) continue;
+                            await serv.Ask<string>(new Operation(OperationType.Delete, message.Operation.filename, null, true));
+                        }
+
+                    }).Wait();
                 }
-                
-                Task.Run(async () => {
-                    servers = await register.Ask<List<IActorRef>>(new RegisterMessage(RequestMethod.ListServers, null));
-                    servers = (servers != null) ? servers : new List<IActorRef>(); 
-                    Console.WriteLine("Servidores encontrados: {0}", servers.Count);
 
-                    foreach(IActorRef serv in servers){
-                        if(serv == executor) continue;
-                        res = await serv.Ask<string>(new Operation(OperationType.Delete, message.Operation.filename, null, true));
-                        Console.WriteLine(res);
-                    }
-
-                }).Wait();
-                
-                message.Target.Tell(res);
+                message.Target.Tell("Arquivo removido com sucesso!");
                 
             }
         }
