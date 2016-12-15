@@ -218,26 +218,27 @@ akka {
             public void Handle(OperationMessage message)
             {
                 List<IActorRef> servers = null;
-                List<String> list = new List<String>();
-                
+                String res = "Arquivo removido com sucesso!";
+
                 if(File.Exists(Constants.FILEPATH + "/" + message.Operation.filename)){
-                    File.Delete(Constants.FILEPATH + "/" + message.Operation.filename);   
-                    message.Target.Tell("Arquivo removido com sucesso!");
-                }else{
-                    Task.Run(async () => {
-                        servers = await register.Ask<List<IActorRef>>(new RegisterMessage(RequestMethod.ListServers, null));
-                        servers = (servers != null) ? servers : new List<IActorRef>(); 
-                        Console.WriteLine("Servidores encontrados: {0}", servers.Count);
-
-                        foreach(IActorRef serv in servers){
-                            if(serv == executor) continue;
-                            await serv.Ask<string>(new Operation(OperationType.Delete, null, null, true));
-                        }
-
-                    }).Wait();
-                
-                    message.Target.Tell("Arquivo removido com sucesso!");
+                    File.Delete(Constants.FILEPATH + "/" + message.Operation.filename);
                 }
+                
+                Task.Run(async () => {
+                    servers = await register.Ask<List<IActorRef>>(new RegisterMessage(RequestMethod.ListServers, null));
+                    servers = (servers != null) ? servers : new List<IActorRef>(); 
+                    Console.WriteLine("Servidores encontrados: {0}", servers.Count);
+
+                    foreach(IActorRef serv in servers){
+                        if(serv == executor) continue;
+                        res = await serv.Ask<string>(new Operation(OperationType.Delete, message.Operation.filename, null, true));
+                        Console.WriteLine(res);
+                    }
+
+                }).Wait();
+                
+                message.Target.Tell(res);
+                
             }
         }
 
