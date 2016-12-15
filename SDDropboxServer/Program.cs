@@ -183,7 +183,7 @@ akka {
                     }
                 }).Wait();
                 
-
+                //write local
                 using (FileStream fs = File.Create(path))
                 {
                     fs.Write(message.Operation.content, 0, message.Operation.content.Length);
@@ -194,12 +194,11 @@ akka {
         }
 
 
-        private class ReadActor : TypedActor, IHandle<OperationMessage>
+        private class ReadActor : TypedActor, IHandle<OperationMessage>, IHandle<ServerOperationMessage>
         {
-            public void Handle(OperationMessage message)
-            {
+            public void Handle(ServerOperationMessage message){
                 var path = Constants.FILEPATH + "/" + message.Operation.filename;
-                
+
                 if(!File.Exists(path)){   
                     message.Target.Tell(new ReadResponse(false, "Arquivo não encontrado!", null, null));
                 }else{
@@ -207,6 +206,45 @@ akka {
                     byte[] info = File.ReadAllBytes(path);
                     message.Target.Tell(new ReadResponse(true, "Arquivo sincronizado!", message.Operation.filename, info));
                 }
+            }
+            public void Handle(OperationMessage message)
+            {
+                var path = Constants.FILEPATH + "/" + message.Operation.filename;
+                
+                //search local server
+                if(File.Exists(path)){   
+                    Console.WriteLine("Enviando: {0}", message.Operation.filename);
+                    byte[] info = File.ReadAllBytes(path);
+                    message.Target.Tell(new ReadResponse(true, "Arquivo sincronizado!", message.Operation.filename, info));
+                    return;
+                }
+                
+
+                //search all server
+                List<IActorRef> servers = null;
+                List<String> list = new List<String>();
+                ReadResponse res = new ReadResponse(false, "Arquivo não encontrado!", null, null);
+
+                Task.Run(async () => {
+                    servers = await register.Ask<List<IActorRef>>(new RegisterMessage(RequestMethod.ListServers, null));
+                    servers = (servers != null) ? servers : new List<IActorRef>(); 
+                    Console.WriteLine("Servidores encontrados: {0}", servers.Count);
+
+                    foreach(IActorRef serv in servers){
+                        if(serv == executor) continue;
+
+                        res = await serv.Ask<ReadResponse>(new Operation(OperationType.Read, message.Operation.filename, null, true));
+                        
+                        if(res.status){
+                            break;
+                        }
+                        
+                    }
+
+                }).Wait();
+
+                message.Target.Tell(res);
+
             }
         }
 
